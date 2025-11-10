@@ -4,8 +4,9 @@ let cnv;
 let menuDiv;
 
 function setup() {
-  // 建立 800x600 畫布並置中
-  cnv = createCanvas(800, 600);
+  // 建立與視窗同大的畫布
+  cnv = createCanvas(windowWidth, windowHeight);
+  // 由於畫布已滿版，此行置中程式碼可以選擇保留或移除
   cnv.position((windowWidth - width) / 2, (windowHeight - height) / 2);
 
   // 將整個網頁背景設為黑色，使畫布以外的區域也為黑
@@ -13,6 +14,16 @@ function setup() {
 
   // 建立固定在整個視窗左側的選單（HTML + CSS）
   const css = `
+    /* 建立一個感應區塊，當滑鼠進入此區塊時，選單會滑出 */
+    #hoverZone {
+      position: fixed;
+      left: 0;
+      top: 0;
+      height: 100vh;
+      width: 50px; /* 設定感應區的寬度，例如 50px */
+      z-index: 10002; /* 確保感應區在選單之上（但選單在畫布之上） */
+    }
+
     #leftMenu {
       position: fixed;
       left: 0;
@@ -25,10 +36,21 @@ function setup() {
       box-sizing: border-box;
       font-size: 32px;
       line-height: 1.6;
-      z-index: 10000;
+      z-index: 10001;
       box-shadow: 4px 0 12px rgba(0,0,0,0.7);
       font-family: sans-serif;
+      
+      /* 關鍵改動：預設將選單移到左邊隱藏 */
+      transform: translateX(-300px); 
+      transition: transform 0.3s ease-out; /* 平滑過渡效果 */
     }
+    
+    /* 關鍵改動：當滑鼠懸停在 #hoverZone 上或選單本身時，選單滑出 */
+    #hoverZone:hover + #leftMenu,
+    #leftMenu:hover {
+      transform: translateX(0);
+    }
+
     #leftMenu a {
       color: #fff;
       text-decoration: none;
@@ -37,12 +59,19 @@ function setup() {
       margin: 14px 0;
     }
     #leftMenu a:hover { opacity: 0.9; }
+    
     /* 避免 canvas 被選單遮蓋時仍可看到完整畫布邊界（選擇性）*/
+    /* 注意：當畫布滿版時，這個樣式通常不需要，但保留以防萬一 */
     .canvas-offset { margin-left: 340px; }
   `;
   const style = document.createElement('style');
   style.appendChild(document.createTextNode(css));
   document.head.appendChild(style);
+  
+  // 新增感應區 DOM
+  const hoverZone = document.createElement('div');
+  hoverZone.id = 'hoverZone';
+  document.body.appendChild(hoverZone);
 
   // 建立選單 DOM
   menuDiv = document.createElement('div');
@@ -51,6 +80,8 @@ function setup() {
     <a id="menu1">第一單元作品</a>
     <a id="menu2">第一單元講義</a>
     <a id="menu3">測驗系統</a>
+    <a id="menu5">測驗卷筆記</a>
+    <a id="menu6">作品筆記</a>
     <a id="menu4">回到首頁</a>
   `;
   document.body.appendChild(menuDiv);
@@ -71,7 +102,7 @@ function setup() {
     overlay.style.width = '70vw';   // 70% 視窗寬度
     overlay.style.height = '85vh';  // 85% 視窗高度
     overlay.style.background = '#111';
-    overlay.style.zIndex = 10001;
+    overlay.style.zIndex = 10003; 
     overlay.style.borderRadius = '6px';
     overlay.style.boxShadow = '0 8px 30px rgba(0,0,0,0.6)';
     overlay.style.overflow = 'hidden';
@@ -81,7 +112,7 @@ function setup() {
         position: absolute;
         right: 10px;
         top: 10px;
-        z-index: 10002;
+        z-index: 10004;
         font-size: 18px;
         padding: 6px 10px;
         cursor: pointer;
@@ -110,7 +141,7 @@ function setup() {
     overlay.style.width = '70vw';   // 70% 視窗寬度
     overlay.style.height = '85vh';  // 85% 視窗高度
     overlay.style.background = '#111';
-    overlay.style.zIndex = 10001;
+    overlay.style.zIndex = 10003;
     overlay.style.borderRadius = '6px';
     overlay.style.boxShadow = '0 8px 30px rgba(0,0,0,0.6)';
     overlay.style.overflow = 'hidden';
@@ -121,7 +152,7 @@ function setup() {
         position: absolute;
         right: 10px;
         top: 10px;
-        z-index: 10002;
+        z-index: 10004;
         font-size: 18px;
         padding: 6px 10px;
         cursor: pointer;
@@ -135,7 +166,93 @@ function setup() {
     document.body.appendChild(overlay);
     document.getElementById('closeIframe').addEventListener('click', ()=> overlay.remove());
   });
-  document.getElementById('menu3').addEventListener('click', ()=>{ /* TODO */ });
+  
+  // 「測驗系統」點擊事件 (menu3)
+  document.getElementById('menu3').addEventListener('click', ()=> {
+    const existing = document.getElementById('iframeOverlayQuiz');
+    if (existing) {
+      existing.remove();
+      return;
+    }
+    const overlay = document.createElement('div');
+    overlay.id = 'iframeOverlayQuiz';
+    overlay.style.position = 'fixed';
+    overlay.style.left = '50%';
+    overlay.style.top = '50%';
+    overlay.style.transform = 'translate(-50%, -50%)';
+    overlay.style.width = '70vw';
+    overlay.style.height = '85vh';
+    overlay.style.background = '#111';
+    overlay.style.zIndex = 10003; 
+    overlay.style.borderRadius = '6px';
+    overlay.style.boxShadow = '0 8px 30px rgba(0,0,0,0.6)';
+    overlay.style.overflow = 'hidden';
+
+    overlay.innerHTML = `
+      <button id="closeIframeQuiz" style="
+        position: absolute;
+        right: 10px;
+        top: 10px;
+        z-index: 10004;
+        font-size: 18px;
+        padding: 6px 10px;
+        cursor: pointer;
+        border: none;
+        border-radius: 4px;
+        background: rgba(255,255,255,0.12);
+        color: #fff;
+      ">關閉</button>
+      <iframe src="https://s110476-cmd.github.io/2025-11-03/" style="width:100%;height:100%;border:0;" allowfullscreen></iframe>
+    `;
+    document.body.appendChild(overlay);
+    document.getElementById('closeIframeQuiz').addEventListener('click', ()=> overlay.remove());
+  });
+  
+  // ****** 新增「測驗卷筆記」點擊事件 (menu5) ******
+  document.getElementById('menu5').addEventListener('click', ()=> {
+    const existing = document.getElementById('iframeOverlayQuizNotes');
+    if (existing) {
+      existing.remove();
+      return;
+    }
+    const overlay = document.createElement('div');
+    overlay.id = 'iframeOverlayQuizNotes'; // 使用獨立 ID
+    overlay.style.position = 'fixed';
+    overlay.style.left = '50%';
+    overlay.style.top = '50%';
+    overlay.style.transform = 'translate(-50%, -50%)';
+    overlay.style.width = '70vw';   // 70% 視窗寬度
+    overlay.style.height = '85vh';  // 85% 視窗高度
+    overlay.style.background = '#111';
+    overlay.style.zIndex = 10003; 
+    overlay.style.borderRadius = '6px';
+    overlay.style.boxShadow = '0 8px 30px rgba(0,0,0,0.6)';
+    overlay.style.overflow = 'hidden';
+
+    overlay.innerHTML = `
+      <button id="closeIframeQuizNotes" style="
+        position: absolute;
+        right: 10px;
+        top: 10px;
+        z-index: 10004;
+        font-size: 18px;
+        padding: 6px 10px;
+        cursor: pointer;
+        border: none;
+        border-radius: 4px;
+        background: rgba(255,255,255,0.12);
+        color: #fff;
+      ">關閉</button>
+      <iframe src="https://hackmd.io/@RXcou08ERlul7o47xjnHCg/HkvNLsrkZl" style="width:100%;height:100%;border:0;" allowfullscreen></iframe>
+    `;
+    document.body.appendChild(overlay);
+    document.getElementById('closeIframeQuizNotes').addEventListener('click', ()=> overlay.remove());
+  });
+  // **********************************************
+
+  // 作品筆記 (menu6) - 保持 TODO
+  document.getElementById('menu6').addEventListener('click', ()=>{ /* TODO */ });
+
   document.getElementById('menu4').addEventListener('click', ()=>{ /* TODO */ });
 
   // 可選：若希望畫布右移避免被選單遮蓋，可啟用下列樣式（目前為選用）
@@ -168,7 +285,9 @@ function draw() {
 }
 
 function windowResized() {
-  // 畫布重新置中
+  // 讓畫布尺寸隨視窗調整
+  resizeCanvas(windowWidth, windowHeight);
+  // 畫布重新置中 (滿版時此行效果不大，但可保留)
   cnv.position((windowWidth - width) / 2, (windowHeight - height) / 2);
 }
 
@@ -191,7 +310,8 @@ class DynamicShape {
     this.actionPoints = this.maxActionPoints;
     this.elapsedT = 0;
     this.size = 0;
-    this.sizeMax = width * random(0.01, 0.05);
+    // 粒子的最大尺寸也會隨著畫布寬度調整
+    this.sizeMax = width * random(0.01, 0.05); 
     this.fromSize = 0;
     this.init();
     this.isDead = false;

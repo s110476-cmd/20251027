@@ -82,6 +82,7 @@ function setup() {
     <a id="menu3">測驗系統</a>
     <a id="menu5">測驗卷筆記</a>
     <a id="menu6">作品筆記</a>
+    <a id="menu7">淡江大學</a> 
     <a id="menu4">回到首頁</a>
   `;
   document.body.appendChild(menuDiv);
@@ -208,7 +209,7 @@ function setup() {
     document.getElementById('closeIframeQuiz').addEventListener('click', ()=> overlay.remove());
   });
   
-  // ****** 新增「測驗卷筆記」點擊事件 (menu5) ******
+  // 「測驗卷筆記」點擊事件 (menu5)
   document.getElementById('menu5').addEventListener('click', ()=> {
     const existing = document.getElementById('iframeOverlayQuizNotes');
     if (existing) {
@@ -216,7 +217,7 @@ function setup() {
       return;
     }
     const overlay = document.createElement('div');
-    overlay.id = 'iframeOverlayQuizNotes'; // 使用獨立 ID
+    overlay.id = 'iframeOverlayQuizNotes';
     overlay.style.position = 'fixed';
     overlay.style.left = '50%';
     overlay.style.top = '50%';
@@ -248,10 +249,51 @@ function setup() {
     document.body.appendChild(overlay);
     document.getElementById('closeIframeQuizNotes').addEventListener('click', ()=> overlay.remove());
   });
-  // **********************************************
 
   // 作品筆記 (menu6) - 保持 TODO
   document.getElementById('menu6').addEventListener('click', ()=>{ /* TODO */ });
+
+  // ****** 新增「淡江大學」點擊事件 (menu7) ******
+  document.getElementById('menu7').addEventListener('click', ()=> {
+    const existing = document.getElementById('iframeOverlayTKU');
+    if (existing) {
+      existing.remove();
+      return;
+    }
+    const overlay = document.createElement('div');
+    overlay.id = 'iframeOverlayTKU'; // 使用獨立 ID
+    overlay.style.position = 'fixed';
+    overlay.style.left = '50%';
+    overlay.style.top = '50%';
+    overlay.style.transform = 'translate(-50%, -50%)';
+    overlay.style.width = '70vw';   // 70% 視窗寬度
+    overlay.style.height = '85vh';  // 85% 視窗高度
+    overlay.style.background = '#111';
+    overlay.style.zIndex = 10003; 
+    overlay.style.borderRadius = '6px';
+    overlay.style.boxShadow = '0 8px 30px rgba(0,0,0,0.6)';
+    overlay.style.overflow = 'hidden';
+
+    overlay.innerHTML = `
+      <button id="closeIframeTKU" style="
+        position: absolute;
+        right: 10px;
+        top: 10px;
+        z-index: 10004;
+        font-size: 18px;
+        padding: 6px 10px;
+        cursor: pointer;
+        border: none;
+        border-radius: 4px;
+        background: rgba(255,255,255,0.12);
+        color: #fff;
+      ">關閉</button>
+      <iframe src="https://www.tku.edu.tw/" style="width:100%;height:100%;border:0;" allowfullscreen></iframe>
+    `;
+    document.body.appendChild(overlay);
+    document.getElementById('closeIframeTKU').addEventListener('click', ()=> overlay.remove());
+  });
+  // **********************************************
 
   document.getElementById('menu4').addEventListener('click', ()=>{ /* TODO */ });
 

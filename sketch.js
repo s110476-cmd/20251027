@@ -1,27 +1,65 @@
+// 全域變數
 let objs = [];
 let colors = ['#f71735', '#f7d002', '#1A53C0', '#232323'];
 let cnv;
 let menuDiv;
 
+// 淡江大學文字動畫相關變數
+let textAnimDuration = 150; // 動畫持續時間 (以幀數計，約 2.5 秒)
+let textAnimElapsed = 0;    // 已逝時間
+let textTargetY;            // 目標 Y 座標 (中央)
+let textStartY;             // 起始 Y 座標 (螢幕下方)
+let currentTextY;           // 目前 Y 座標
+
+// --------------------- Easing Function ---------------------
+// 利用 easeOutElastic 函式實現彈出效果
+function easeOutElastic(x) {
+  const c4 = (2 * Math.PI) / 3;
+  
+  if (x === 0) return 0;
+  if (x === 1) return 1;
+  
+  // easeOutElastic 公式
+  return Math.pow(2, -10 * x) * Math.sin((x * 10 - 0.75) * c4) + 1;
+}
+// -----------------------------------------------------------
+
+
 function setup() {
-  // 建立與視窗同大的畫布
+  // --------------------- 1. 動態載入 Google Fonts CSS ---------------------
+  // 載入 Zen Maru Gothic (用於選單) 和 Rampart One (用於主標題)
+  const link1 = document.createElement('link');
+  link1.rel = 'preconnect';
+  link1.href = 'https://fonts.googleapis.com';
+  document.head.appendChild(link1);
+
+  const link2 = document.createElement('link');
+  link2.rel = 'preconnect';
+  link2.href = 'https://fonts.gstatic.com';
+  link2.crossOrigin = '';
+  document.head.appendChild(link2);
+
+  const link3 = document.createElement('link');
+  link3.href = 'https://fonts.googleapis.com/css2?family=Rampart+One&family=Zen+Maru+Gothic&display=swap';
+  link3.rel = 'stylesheet';
+  document.head.appendChild(link3);
+
+  // --------------------- 2. 建立畫布與設定 ---------------------
   cnv = createCanvas(windowWidth, windowHeight);
-  // 由於畫布已滿版，此行置中程式碼可以選擇保留或移除
   cnv.position((windowWidth - width) / 2, (windowHeight - height) / 2);
 
-  // 將整個網頁背景設為黑色，使畫布以外的區域也為黑
   document.body.style.backgroundColor = '#000';
+  document.body.style.fontFamily = '"Zen Maru Gothic", sans-serif'; // 選單字體
 
-  // 建立固定在整個視窗左側的選單（HTML + CSS）
+  // --------------------- 3. 選單 CSS/HTML 設定 ---------------------
   const css = `
-    /* 建立一個感應區塊，當滑鼠進入此區塊時，選單會滑出 */
     #hoverZone {
       position: fixed;
       left: 0;
       top: 0;
       height: 100vh;
-      width: 50px; /* 設定感應區的寬度，例如 50px */
-      z-index: 10002; /* 確保感應區在選單之上（但選單在畫布之上） */
+      width: 50px;
+      z-index: 10002;
     }
 
     #leftMenu {
@@ -38,14 +76,13 @@ function setup() {
       line-height: 1.6;
       z-index: 10001;
       box-shadow: 4px 0 12px rgba(0,0,0,0.7);
-      font-family: sans-serif;
+      /* 選單字型：Zen Maru Gothic */
+      font-family: "Zen Maru Gothic", sans-serif;
       
-      /* 關鍵改動：預設將選單移到左邊隱藏 */
       transform: translateX(-300px); 
-      transition: transform 0.3s ease-out; /* 平滑過渡效果 */
+      transition: transform 0.3s ease-out;
     }
     
-    /* 關鍵改動：當滑鼠懸停在 #hoverZone 上或選單本身時，選單滑出 */
     #hoverZone:hover + #leftMenu,
     #leftMenu:hover {
       transform: translateX(0);
@@ -57,23 +94,41 @@ function setup() {
       display: block;
       cursor: pointer;
       margin: 14px 0;
+      transition: opacity 0.2s;
     }
     #leftMenu a:hover { opacity: 0.9; }
     
-    /* 避免 canvas 被選單遮蓋時仍可看到完整畫布邊界（選擇性）*/
-    /* 注意：當畫布滿版時，這個樣式通常不需要，但保留以防萬一 */
-    .canvas-offset { margin-left: 340px; }
+    #menu7Wrapper {
+      margin: 14px 0;
+      position: relative;
+    }
+
+    #subMenuTKU {
+      max-height: 0; 
+      overflow: hidden;
+      transition: max-height 0.4s ease-out, padding 0.3s ease-out;
+    }
+
+    #menu7Wrapper:hover #subMenuTKU {
+      max-height: 200px;
+      padding-top: 5px;
+    }
+
+    #subMenuTKU a {
+      font-size: 24px;
+      line-height: 1.4;
+      margin: 8px 0;
+      padding-left: 30px;
+    }
   `;
   const style = document.createElement('style');
   style.appendChild(document.createTextNode(css));
   document.head.appendChild(style);
   
-  // 新增感應區 DOM
   const hoverZone = document.createElement('div');
   hoverZone.id = 'hoverZone';
   document.body.appendChild(hoverZone);
 
-  // 建立選單 DOM
   menuDiv = document.createElement('div');
   menuDiv.id = 'leftMenu';
   menuDiv.innerHTML = `
@@ -82,12 +137,21 @@ function setup() {
     <a id="menu3">測驗系統</a>
     <a id="menu5">測驗卷筆記</a>
     <a id="menu6">作品筆記</a>
-    <a id="menu7">淡江大學</a> 
+    <div id="menu7Wrapper">
+      <a id="menu7">淡江大學</a> 
+      <div id="subMenuTKU">
+        <a id="subMenuET">教育科技學系</a>
+      </div>
+    </div>
     <a id="menu4">回到首頁</a>
   `;
   document.body.appendChild(menuDiv);
 
-  // 範例：可加上點擊事件（視需求調整）
+  // ----------------------------------------------------
+  // 選單點擊事件
+  // ----------------------------------------------------
+
+  // 第一單元作品 (menu1)
   document.getElementById('menu1').addEventListener('click', ()=> {
     const existing = document.getElementById('iframeOverlayUnit1');
     if (existing) {
@@ -100,8 +164,8 @@ function setup() {
     overlay.style.left = '50%';
     overlay.style.top = '50%';
     overlay.style.transform = 'translate(-50%, -50%)';
-    overlay.style.width = '70vw';   // 70% 視窗寬度
-    overlay.style.height = '85vh';  // 85% 視窗高度
+    overlay.style.width = '70vw';
+    overlay.style.height = '85vh';
     overlay.style.background = '#111';
     overlay.style.zIndex = 10003; 
     overlay.style.borderRadius = '6px';
@@ -127,6 +191,8 @@ function setup() {
     document.body.appendChild(overlay);
     document.getElementById('closeIframeUnit1').addEventListener('click', ()=> overlay.remove());
   });
+
+  // 第一單元講義 (menu2)
   document.getElementById('menu2').addEventListener('click', ()=> {
     const existing = document.getElementById('iframeOverlay');
     if (existing) {
@@ -139,15 +205,14 @@ function setup() {
     overlay.style.left = '50%';
     overlay.style.top = '50%';
     overlay.style.transform = 'translate(-50%, -50%)';
-    overlay.style.width = '70vw';   // 70% 視窗寬度
-    overlay.style.height = '85vh';  // 85% 視窗高度
+    overlay.style.width = '70vw';
+    overlay.style.height = '85vh';
     overlay.style.background = '#111';
     overlay.style.zIndex = 10003;
     overlay.style.borderRadius = '6px';
     overlay.style.boxShadow = '0 8px 30px rgba(0,0,0,0.6)';
     overlay.style.overflow = 'hidden';
 
-    // 內含關閉按鈕與 iframe（改為 HackMD 網址）
     overlay.innerHTML = `
       <button id="closeIframe" style="
         position: absolute;
@@ -222,8 +287,8 @@ function setup() {
     overlay.style.left = '50%';
     overlay.style.top = '50%';
     overlay.style.transform = 'translate(-50%, -50%)';
-    overlay.style.width = '70vw';   // 70% 視窗寬度
-    overlay.style.height = '85vh';  // 85% 視窗高度
+    overlay.style.width = '70vw';
+    overlay.style.height = '85vh';
     overlay.style.background = '#111';
     overlay.style.zIndex = 10003; 
     overlay.style.borderRadius = '6px';
@@ -250,10 +315,49 @@ function setup() {
     document.getElementById('closeIframeQuizNotes').addEventListener('click', ()=> overlay.remove());
   });
 
-  // 作品筆記 (menu6) - 保持 TODO
-  document.getElementById('menu6').addEventListener('click', ()=>{ /* TODO */ });
+  // **作品筆記 (menu6) - 新增連結功能**
+  document.getElementById('menu6').addEventListener('click', ()=> { 
+    const existing = document.getElementById('iframeOverlayWorkNotes');
+    if (existing) {
+      existing.remove();
+      return;
+    }
+    const overlay = document.createElement('div');
+    overlay.id = 'iframeOverlayWorkNotes';
+    overlay.style.position = 'fixed';
+    overlay.style.left = '50%';
+    overlay.style.top = '50%';
+    overlay.style.transform = 'translate(-50%, -50%)';
+    overlay.style.width = '70vw';
+    overlay.style.height = '85vh';
+    overlay.style.background = '#111';
+    overlay.style.zIndex = 10003; 
+    overlay.style.borderRadius = '6px';
+    overlay.style.boxShadow = '0 8px 30px rgba(0,0,0,0.6)';
+    overlay.style.overflow = 'hidden';
 
-  // ****** 新增「淡江大學」點擊事件 (menu7) ******
+    overlay.innerHTML = `
+      <button id="closeIframeWorkNotes" style="
+        position: absolute;
+        right: 10px;
+        top: 10px;
+        z-index: 10004;
+        font-size: 18px;
+        padding: 6px 10px;
+        cursor: pointer;
+        border: none;
+        border-radius: 4px;
+        background: rgba(255,255,255,0.12);
+        color: #fff;
+      ">關閉</button>
+      <iframe src="https://hackmd.io/@RXcou08ERlul7o47xjnHCg/Hk3Wn6AJ-l" style="width:100%;height:100%;border:0;" allowfullscreen></iframe>
+    `;
+    document.body.appendChild(overlay);
+    document.getElementById('closeIframeWorkNotes').addEventListener('click', ()=> overlay.remove());
+  });
+
+
+  // 淡江大學點擊事件 (menu7) - 點擊主連結
   document.getElementById('menu7').addEventListener('click', ()=> {
     const existing = document.getElementById('iframeOverlayTKU');
     if (existing) {
@@ -261,13 +365,13 @@ function setup() {
       return;
     }
     const overlay = document.createElement('div');
-    overlay.id = 'iframeOverlayTKU'; // 使用獨立 ID
+    overlay.id = 'iframeOverlayTKU';
     overlay.style.position = 'fixed';
     overlay.style.left = '50%';
     overlay.style.top = '50%';
     overlay.style.transform = 'translate(-50%, -50%)';
-    overlay.style.width = '70vw';   // 70% 視窗寬度
-    overlay.style.height = '85vh';  // 85% 視窗高度
+    overlay.style.width = '70vw';
+    overlay.style.height = '85vh';
     overlay.style.background = '#111';
     overlay.style.zIndex = 10003; 
     overlay.style.borderRadius = '6px';
@@ -293,25 +397,89 @@ function setup() {
     document.body.appendChild(overlay);
     document.getElementById('closeIframeTKU').addEventListener('click', ()=> overlay.remove());
   });
-  // **********************************************
+  
+  // 「教育科技學系」點擊事件 (subMenuET)
+  document.getElementById('subMenuET').addEventListener('click', ()=> {
+    const existing = document.getElementById('iframeOverlayET');
+    if (existing) {
+      existing.remove();
+      return;
+    }
+    const overlay = document.createElement('div');
+    overlay.id = 'iframeOverlayET';
+    overlay.style.position = 'fixed';
+    overlay.style.left = '50%';
+    overlay.style.top = '50%';
+    overlay.style.transform = 'translate(-50%, -50%)';
+    overlay.style.width = '70vw';
+    overlay.style.height = '85vh';
+    overlay.style.background = '#111';
+    overlay.style.zIndex = 10003; 
+    overlay.style.borderRadius = '6px';
+    overlay.style.boxShadow = '0 8px 30px rgba(0,0,0,0.6)';
+    overlay.style.overflow = 'hidden';
+
+    overlay.innerHTML = `
+      <button id="closeIframeET" style="
+        position: absolute;
+        right: 10px;
+        top: 10px;
+        z-index: 10004;
+        font-size: 18px;
+        padding: 6px 10px;
+        cursor: pointer;
+        border: none;
+        border-radius: 4px;
+        background: rgba(255,255,255,0.12);
+        color: #fff;
+      ">關閉</button>
+      <iframe src="https://hackmd.io/@RXcou08ERlul7o47xjnHCg/HkvNLsrkZl" style="width:100%;height:100%;border:0;" allowfullscreen></iframe>
+    `;
+    document.body.appendChild(overlay);
+    document.getElementById('closeIframeET').addEventListener('click', ()=> overlay.remove());
+  });
 
   document.getElementById('menu4').addEventListener('click', ()=>{ /* TODO */ });
 
-  // 可選：若希望畫布右移避免被選單遮蓋，可啟用下列樣式（目前為選用）
-  // cnv.elt.classList.add('canvas-offset');
-
   // 設定繪圖參數
   rectMode(CENTER);
+  textAlign(CENTER, CENTER);
   objs.push(new DynamicShape());
+  
+  // 初始化文字動畫參數
+  textTargetY = height / 2;
+  textStartY = height + 100; // 從視窗最下方往上移動
+  currentTextY = textStartY;
 }
 
 function draw() {
   // 畫布背景為黑色
   background(0);
 
+  // 繪製粒子特效
   for (let i of objs) {
     i.run();
   }
+
+  // --------------------- 文本動畫邏輯 ---------------------
+  if (textAnimElapsed < textAnimDuration) {
+    textAnimElapsed++;
+    let n = textAnimElapsed / textAnimDuration; // 計算動畫進度 0 到 1
+    let easingValue = easeOutElastic(n);       // 應用彈出緩動函式
+    
+    // 使用 lerp (線性插值) 將 Y 座標從 StartY 移到 TargetY，但進度由 easingValue 決定
+    currentTextY = lerp(textStartY, textTargetY, easingValue);
+  }
+
+  // --------------------- 繪製置中文字：淡江大學 (使用 Rampart One) ---------------------
+  fill(255); 
+  textSize(width * 0.06);
+  // 核心：設定為 Rampart One 字體
+  textFont('Rampart One'); 
+  
+  // 使用動畫計算出的 Y 座標
+  text("淡江大學", width / 2, currentTextY); 
+  // -----------------------------------------------------------
 
   if (frameCount % int(random([15, 30])) == 0) {
     let addNum = int(random(1, 30));
@@ -329,8 +497,15 @@ function draw() {
 function windowResized() {
   // 讓畫布尺寸隨視窗調整
   resizeCanvas(windowWidth, windowHeight);
-  // 畫布重新置中 (滿版時此行效果不大，但可保留)
   cnv.position((windowWidth - width) / 2, (windowHeight - height) / 2);
+
+  // 更新文字動畫目標位置
+  textTargetY = height / 2;
+  
+  // 如果動畫已經完成，則將文字位置設為新的中央位置
+  if (textAnimElapsed >= textAnimDuration) {
+    currentTextY = textTargetY;
+  }
 }
 
 function easeInOutExpo(x) {
